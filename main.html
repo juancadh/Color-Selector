@@ -32,6 +32,15 @@
         </div>
 
         <div class="options">
+            
+            <div id="eyedropperImg">
+                <form action='#' onsubmit="return false;">
+                    <label for="imgfile">
+                        <i class="far fa-file-image"></i>
+                    </label>
+                    <input type='file' id='imgfile' class="hidden" />
+                </form>             
+            </div>
             <div id="randomizeMe">
                 <i class="fas fa-random"></i>
             </div>
@@ -56,6 +65,21 @@
             <div id="5"><i class="fas fa-times-circle"></i></div>
             <div id="6"><i class="fas fa-times-circle"></i></div>
             <div id="7"><i class="fas fa-times-circle"></i></div>
+        </div>
+
+        <div class="imgContainer">
+            <canvas id="imgCanvas" width="300" height="300"></canvas>
+            <div class="paletteImg">
+                <div id="0"></div>
+                <div id="1"></div>
+                <div id="2"></div>
+                <div id="3"></div>
+                <div id="4"></div>
+                <div id="5"></div>
+                <div id="6"></div>
+                <div id="7"></div>
+            </div>
+            <img id="imagen" src="" />
         </div>
     
     </div>

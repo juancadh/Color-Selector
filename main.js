@@ -14,7 +14,14 @@ const saveBtn = document.querySelector("#saveMe");
 const hexValue = document.querySelector("#hexVal");
 const savedColors = document.querySelectorAll('.savedColors > div');
 const savedColorsDelete = document.querySelectorAll('.savedColors > div > i');
+const imgContainer = document.querySelector(".imgContainer");
+const imageSrc = document.querySelector("#imagen");
+const imgCanvas = document.querySelector("#imgCanvas");
+const inputFile = document.querySelector('#imgfile');
+const palette = document.querySelectorAll('.paletteImg > div');
 
+const MAX_IMG_W = 300;
+const MAX_IMG_H = 300;
 //localStorage.removeItem('myColors');
 
 // If there is no variable called myColors in local storage the create it
@@ -252,3 +259,226 @@ spanBlue.addEventListener('keydown', (e) => {if (e.keyCode==13) updateRGBInput()
 
 spanOpacity.addEventListener('focusout', () => updateRGBInput());
 spanOpacity.addEventListener('keydown', (e) => {if (e.keyCode==13) updateRGBInput()});
+
+
+
+//-----------------------------------------------
+
+function colorStats(colors){
+
+  let stats = { 
+      'max' : {
+          'r' : Math.max(...colors.map((p)=>{return p[0]})),
+          'g' : Math.max(...colors.map((p)=>{return p[1]})),
+          'b' : Math.max(...colors.map((p)=>{return p[2]}))
+      },
+      'min' : {
+          'r' : Math.min(...colors.map((p)=>{return p[0]})),
+          'g' : Math.min(...colors.map((p)=>{return p[1]})),
+          'b' : Math.min(...colors.map((p)=>{return p[2]}))
+      },
+      'avg' : {
+          'r' : ~~(colors.map((p)=>{return p[0]}).reduce((a,b) => a+b)/colors.length),
+          'g' : ~~(colors.map((p)=>{return p[1]}).reduce((a,b) => a+b)/colors.length),
+          'b' : ~~(colors.map((p)=>{return p[2]}).reduce((a,b) => a+b)/colors.length)
+      },
+      'highestR' : {
+          'r' : colors.sort((a,b)=>b[0]-a[0])[0][0],
+          'g' : colors.sort((a,b)=>b[0]-a[0])[0][1],
+          'b' : colors.sort((a,b)=>b[0]-a[0])[0][2]
+      },
+      'highestG' : {
+          'r' : colors.sort((a,b)=>b[1]-a[1])[0][0],
+          'g' : colors.sort((a,b)=>b[1]-a[1])[0][1],
+          'b' : colors.sort((a,b)=>b[1]-a[1])[0][2]
+      },
+      'highestB' : {
+          'r' : colors.sort((a,b)=>b[2]-a[2])[0][0],
+          'g' : colors.sort((a,b)=>b[2]-a[2])[0][1],
+          'b' : colors.sort((a,b)=>b[2]-a[2])[0][2]
+      },
+      'lowestR' : {
+          'r' : colors.sort((a,b)=>a[0]-b[0])[0][0],
+          'g' : colors.sort((a,b)=>a[0]-b[0])[0][1],
+          'b' : colors.sort((a,b)=>a[0]-b[0])[0][2]
+      },
+      'lowestG' : {
+          'r' : colors.sort((a,b)=>a[1]-b[1])[0][0],
+          'g' : colors.sort((a,b)=>a[1]-b[1])[0][1],
+          'b' : colors.sort((a,b)=>a[1]-b[1])[0][2]
+      },
+      'lowestB' : {
+          'r' : colors.sort((a,b)=>a[2]-b[2])[0][0],
+          'g' : colors.sort((a,b)=>a[2]-b[2])[0][1],
+          'b' : colors.sort((a,b)=>a[2]-b[2])[0][2]
+      }
+  }
+
+  return stats
+
+}
+
+let colors2;
+function getAverageRGB(imgEl) {
+  
+  var blockSize = 150, // only visit every 5 pixels
+      defaultRGB = null, // for non-supporting envs
+      canvas = imgCanvas, //document.createElement('canvas'),
+      context = canvas.getContext && canvas.getContext('2d'),
+      data, width, height,
+      i = -4,
+      length
+      
+  if (!context) {
+      return defaultRGB;
+  }
+  
+  width  = Math.min(imgEl.naturalWidth || imgEl.offsetWidth || imgEl.width, MAX_IMG_W);
+  height = Math.min(imageSrc.naturalHeight || imageSrc.offsetHeight || imageSrc.height, MAX_IMG_H);
+  
+  canvas.width = width;
+  canvas.height = height;
+  
+  context.drawImage(imgEl, 0, 0, width, height);
+  
+  try {
+      data = context.getImageData(0, 0, width, height);
+  } catch(e) {
+      /* security error, img on diff domain */alert('x');
+      return defaultRGB;
+  }
+  
+  length = data.data.length;
+  let colors = []
+  
+  while ( (i += blockSize * 4) < length ) {
+      // ++count;
+      // rgb.r += data.data[i];
+      // rgb.g += data.data[i+1];
+      // rgb.b += data.data[i+2];
+      colors.push([data.data[i], data.data[i+1], data.data[i+2]])
+  }
+
+  cStats = colorStats(colors);
+  colors2 = colors;
+  
+  console.log(cStats);
+
+  // // ~~ used to floor values
+  // rgb.r = cStats['avg']['r'];
+  // rgb.g = cStats['avg']['g'];
+  // rgb.b = cStats['avg']['b'];
+  
+  return cStats;
+  
+}
+
+if (imageSrc.getAttribute("src") != ""){
+  imgContainer.classList.idToRemove("hidden");
+} else {
+  imgContainer.classList.add("hidden");
+}
+
+function findPos(obj) {
+  var curleft = 0, curtop = 0;
+  if (obj.offsetParent) {
+      do {
+          curleft += obj.offsetLeft;
+          curtop += obj.offsetTop;
+      } while (obj = obj.offsetParent);
+      return { x: curleft, y: curtop };
+  }
+  return undefined;
+}
+
+imgCanvas.addEventListener('mousemove', function(e){
+  if (imageSrc.getAttribute("src") != ""){
+    var pos = findPos(this);
+    var x = e.pageX - pos.x;
+    var y = e.pageY - pos.y;
+    var c = this.getContext('2d');
+    var p = c.getImageData(x, y, 1, 1).data;
+    var r=p[0], g=p[1], b=p[2], a=p[3];
+    var hex = rgba2hex(r,g,b,a/255);
+    updateSliders(r,g,b,a);
+    updateBodyColor(r,g,b,a/100);
+    //var hex = "#" + ("000000" + rgbToHex(p[0], p[1], p[2])).slice(-6);
+  }
+})
+
+
+
+// Load Image 
+function loadImage() {
+  let file, fr;
+
+  if (typeof window.FileReader !== 'function') {
+      write("The FileReader API isn't supported on this browser yet.");
+      return;
+  }
+
+  if (!inputFile) {
+      write("Um, couldn't find the image element.");
+  }
+  else if (!inputFile.files) {
+      write("This browser doesn't seem to support the `files` property of file inputs.");
+  }
+  else if (!inputFile.files[0]) {
+      write("Please select a file before clicking 'Load'");
+  }
+  else {      
+      file = inputFile.files[0];
+      fr = new FileReader();
+      fr.onload = createImage;
+      fr.readAsDataURL(file);
+  }
+
+  function createImage() {
+      imageSrc.onload = imageLoaded;
+      imageSrc.src = fr.result;
+  }
+
+  function imageLoaded() {
+      let rgbAvg = getAverageRGB(imageSrc);
+      if(rgbAvg){
+        let rAvg=rgbAvg['avg']['r'], gAvg=rgbAvg['avg']['g'], bAvg=rgbAvg['avg']['b'], aAvg=100;
+        updateSliders(rAvg,gAvg,bAvg,aAvg);
+        updateBodyColor(rAvg,gAvg,bAvg,aAvg/100);
+
+        palette[0].style.background = `rgb(${rAvg},${gAvg},${bAvg})`
+
+        palette[1].style.background = `rgb(${rgbAvg['highestR']['r']},${rgbAvg['highestR']['g']},${rgbAvg['highestR']['b']})`
+        palette[2].style.background = `rgb(${rgbAvg['highestG']['r']},${rgbAvg['highestG']['g']},${rgbAvg['highestG']['b']})`
+        palette[3].style.background = `rgb(${rgbAvg['highestB']['r']},${rgbAvg['highestB']['g']},${rgbAvg['highestB']['b']})`
+
+        palette[4].style.background = `rgb(${rgbAvg['lowestR']['r']},${rgbAvg['lowestR']['g']},${rgbAvg['lowestR']['b']})`
+        palette[5].style.background = `rgb(${rgbAvg['lowestG']['r']},${rgbAvg['lowestG']['g']},${rgbAvg['lowestG']['b']})`
+        palette[6].style.background = `rgb(${rgbAvg['lowestB']['r']},${rgbAvg['lowestB']['g']},${rgbAvg['lowestB']['b']})`
+
+        setColorEvents();
+      }
+  }
+
+  function write(msg) {
+      alert(msg);
+  }
+
+  function setColorEvents() {
+    // Set the event to change the color to all the saved colors
+    palette.forEach((sc)=>{
+      sc.addEventListener('click', function(e){
+        e.stopPropagation();
+        alert("Todo");
+        // if (sc.title != ""){
+        //   setColorHex(sc.title);
+        // }
+      })
+    })
+  }
+}
+
+// imgContainer.classList.remove("hidden");
+inputFile.onchange = function(){
+  loadImage();
+  imgContainer.classList.remove("hidden");
+}

@@ -11,6 +11,10 @@ body {
   min-height: 100vh;
 }
 
+.hidden{
+  display: none !important;
+}
+
 .container{
   background-color: rgba(0,0,0,0.2);
   padding: 2rem;
@@ -104,6 +108,10 @@ body {
   margin: 0 0.5rem;
 }
 
+.options > div > form > label{
+  cursor: pointer;
+}
+
 #hexValContainer{
   margin-left: 1rem;
 }
@@ -134,7 +142,7 @@ input.ghost.Bold {
   font-weight: bold;
 }
 
-.savedColors {
+.savedColors, .paletteImg {
   display: flex;
   width: 100%;
   justify-content: center;
@@ -142,7 +150,7 @@ input.ghost.Bold {
   margin: 1.5rem auto 0 auto;
 }
 
-.savedColors > div{
+.savedColors > div, .paletteImg > div{
   position: relative;
   flex-grow: 1;
   width: 1.8rem;
@@ -176,4 +184,42 @@ input.ghost.Bold {
 
 .savedColors > div:hover > i{
   opacity: 1;
+}
+
+
+.imgContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  padding: 2rem 0.5rem 0rem 0.5rem;
+  overflow: hidden;
+}
+
+.imgContainer > img {
+  display: none;
+}
+
+.imgContainer > canvas {
+  border: 3px solid rgba(0,0,0,0.2);
+  background-color: rgba(0,0,0,0.05);
+  border-collapse: collapse;
+}
+
+.imgContainer > canvas:hover{
+  cursor: crosshair;
+}
+
+.paletteImg{
+  margin: 0;
+}
+
+.paletteImg > div {
+  transform: translateY(-1px);
+  padding: 0;
+  margin: 0;
+  flex-grow: 1;
+  border-radius: 0;
+  border: 3px solid rgba(0,0,0,0.2);
+  border-collapse: collapse;
 }
