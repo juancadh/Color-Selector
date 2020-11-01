@@ -19,6 +19,11 @@ const imageSrc = document.querySelector("#imagen");
 const imgCanvas = document.querySelector("#imgCanvas");
 const inputFile = document.querySelector('#imgfile');
 const palette = document.querySelectorAll('.paletteImg > div');
+const lightnessBox = document.querySelector('.tints');
+const saturationBox = document.querySelector('.shades');
+const hueBox = document.querySelector('.tones');
+const magnifier = document.querySelector('.magnifier');
+
 
 const MAX_IMG_W = 300;
 const MAX_IMG_H = 300;
@@ -128,6 +133,126 @@ copyHexBtn.addEventListener('click', function(){
   alert("Copied! " + copyText.value);
 })
 
+function getBrightness(r,g,b) {
+  return Math.round(0.2126*r + 0.7152*g + 0.0722*b)/255
+}
+
+function hueToRGB(t1, t2, hue) {
+  if (hue < 0) hue += 6;
+  if (hue >= 6) hue -= 6;
+  if (hue < 1) return (t2 - t1) * hue + t1;
+  else if(hue < 3) return t2;
+  else if(hue < 4) return (t2 - t1) * (4 - hue) + t1;
+  else return t1;
+}
+
+function HSLToRGB(hue, sat, light) {
+  var t1, t2, r, g, b;
+  hue = hue / 60;
+  if ( light <= 0.5 ) {
+    t2 = light * (sat + 1);
+  } else {
+    t2 = light + sat - (light * sat);
+  }
+  t1 = light * 2 - t2;
+  r = Math.round(hueToRGB(t1, t2, hue + 2) * 255);
+  g = Math.round(hueToRGB(t1, t2, hue) * 255);
+  b = Math.round(hueToRGB(t1, t2, hue - 2) * 255);
+  return {r : r, g : g, b : b};
+}
+
+function HSLToRGB_2(h, s, l) {
+  var c, x, m, hb, r, g, b;
+  c = (1 - Math.abs(2*l-1))*s;
+  x = c * (1 - Math.abs((h / 60) % 2 - 1));
+  m = l - c/2;
+  hb = ~~(h / 60) + 1
+  switch (hb) {
+    case 1:
+        r = c; g = x; b = 0;
+        break;
+    case 2:
+        r = x; g = c; b = 0;
+        break;
+    case 3:
+        r = 0; g = c; b = x;
+        break;
+    case 4:
+        r = 0; g = x; b = c;
+        break;
+    case 5:
+        r = x; g = 0; b = c;
+        break;
+    case 6:
+        r = c; g = 0; b = x;
+        break;
+    default:
+      break;
+  }
+  
+  r = ~~((r + m) * 255);
+  g = ~~((g + m) * 255);
+  b = ~~((b + m) * 255);
+
+  return {r : r, g : g, b : b};
+}
+
+function RGBtoHSL (r,g,b) {
+  r = r / 255;
+  g = g / 255;
+  b = b / 255;
+  let cMax = Math.max(r,g,b);
+  let cMin = Math.min(r,g,b);
+  let delta = cMax - cMin;
+  let h, s, l;
+
+  if (delta == 0) {
+    h = 0
+  } else if (cMax == r) {
+    h = 60 * ((g - b) / delta)
+  } else if (cMax == g) {
+    h = 60 * (((b - r) / delta) + 2)
+  } else if (cMax == b) {
+    h = 60 * (((r - g) / delta) + 4)
+  }
+
+  h = (h < 0) ? Math.round(h + 360) : Math.round(h);
+
+  l = (cMax + cMin) / 2;
+
+  s = (cMax == 0) ? 0 : delta / (1-Math.abs(2*l-1));
+
+  return {'h' : h, 's' : s, 'l' : l}
+
+}
+
+function RGBtoHSV (r,g,b) {
+  r = r / 255;
+  g = g / 255;
+  b = b / 255;
+  let cMax = Math.max(r,g,b);
+  let cMin = Math.min(r,g,b);
+  let delta = cMax - cMin;
+  let h, s, v;
+
+  if (delta == 0) {
+    h = 0
+  } else if (cMax == r) {
+    h = 60 * ((g - b) / delta)
+  } else if (cMax == g) {
+    h = 60 * (((b - r) / delta) + 2)
+  } else if (cMax == b) {
+    h = 60 * (((r - g) / delta) + 4)
+  }
+
+  h = (h < 0) ? Math.round(h + 360) : Math.round(h);
+  s = (cMax == 0) ? 0 : delta / cMax;
+  v = cMax;
+
+  return {'h' : h, 's' : s, 'v' : v}
+
+}
+
 function convertHexToRGBA (hexCode) {
   let hex = hexCode.replace('#', '');
   
@@ -156,11 +281,11 @@ function rgba2hex(r,g,b,alpha=-1) {
     (g | 1 << 8).toString(16).slice(1) +
     (b | 1 << 8).toString(16).slice(1) ;
   
-  if (alpha){
-    let a = (alpha) ? alpha :  01;  
-    a = ((a * 255) | 1 << 8).toString(16).slice(1)
-    hex = hex + a;
-  }
+  // if (alpha){
+  //   let a = (alpha) ? alpha :  01;  
+  //   a = ((a * 255) | 1 << 8).toString(16).slice(1)
+  //   hex = hex + a;
+  // }
 
   return hex;
 }
@@ -180,7 +305,8 @@ function updateSliders(r,g,b,a){
 function updateBodyColor(r,g,b,a){
   body.style.background = `rgba(${r},${g},${b},${a})`;
   let hexColor = rgba2hex(r,g,b,a);
-  hexValue.value = this.value = "#" + hexColor.replace('#', '');;
+  hexValue.value = this.value = "#" + hexColor.replace('#', '');
+  updateLSH(r,g,b);
 }
 
 function randomize(){
@@ -266,62 +392,51 @@ spanOpacity.addEventListener('keydown', (e) => {if (e.keyCode==13) updateRGBInpu
 
 function colorStats(colors){
 
-  let stats = { 
-      'max' : {
-          'r' : Math.max(...colors.map((p)=>{return p[0]})),
-          'g' : Math.max(...colors.map((p)=>{return p[1]})),
-          'b' : Math.max(...colors.map((p)=>{return p[2]}))
-      },
-      'min' : {
-          'r' : Math.min(...colors.map((p)=>{return p[0]})),
-          'g' : Math.min(...colors.map((p)=>{return p[1]})),
-          'b' : Math.min(...colors.map((p)=>{return p[2]}))
-      },
-      'avg' : {
-          'r' : ~~(colors.map((p)=>{return p[0]}).reduce((a,b) => a+b)/colors.length),
-          'g' : ~~(colors.map((p)=>{return p[1]}).reduce((a,b) => a+b)/colors.length),
-          'b' : ~~(colors.map((p)=>{return p[2]}).reduce((a,b) => a+b)/colors.length)
-      },
-      'highestR' : {
-          'r' : colors.sort((a,b)=>b[0]-a[0])[0][0],
-          'g' : colors.sort((a,b)=>b[0]-a[0])[0][1],
-          'b' : colors.sort((a,b)=>b[0]-a[0])[0][2]
-      },
-      'highestG' : {
-          'r' : colors.sort((a,b)=>b[1]-a[1])[0][0],
-          'g' : colors.sort((a,b)=>b[1]-a[1])[0][1],
-          'b' : colors.sort((a,b)=>b[1]-a[1])[0][2]
-      },
-      'highestB' : {
-          'r' : colors.sort((a,b)=>b[2]-a[2])[0][0],
-          'g' : colors.sort((a,b)=>b[2]-a[2])[0][1],
-          'b' : colors.sort((a,b)=>b[2]-a[2])[0][2]
-      },
-      'lowestR' : {
-          'r' : colors.sort((a,b)=>a[0]-b[0])[0][0],
-          'g' : colors.sort((a,b)=>a[0]-b[0])[0][1],
-          'b' : colors.sort((a,b)=>a[0]-b[0])[0][2]
-      },
-      'lowestG' : {
-          'r' : colors.sort((a,b)=>a[1]-b[1])[0][0],
-          'g' : colors.sort((a,b)=>a[1]-b[1])[0][1],
-          'b' : colors.sort((a,b)=>a[1]-b[1])[0][2]
-      },
-      'lowestB' : {
-          'r' : colors.sort((a,b)=>a[2]-b[2])[0][0],
-          'g' : colors.sort((a,b)=>a[2]-b[2])[0][1],
-          'b' : colors.sort((a,b)=>a[2]-b[2])[0][2]
-      }
+  let n = colors[0].length;
+  let stats = { 'max' : [], 'min' : [], 'avg' : [] };
+
+  for (var i=0; i<n; i++){
+    stats['max'].push(Math.max(...colors.map((p)=>{return p[i]})));
+    stats['min'].push(Math.min(...colors.map((p)=>{return p[i]})));
+    stats['avg'].push(~~(colors.map((p)=>{return p[i]}).reduce((a,b) => a+b)/colors.length));
   }
 
-  return stats
+  return stats;
 
 }
 
-let colors2;
+function countHueBuckets(hueBuckets, RGBcolors){
+  let result = [];
+  var arr = [];
+  // Count the number of pixels that are inside each hue bucket
+  let occHues = hueBuckets.reduce((a, b) => (a[b] = (a[b] || 0) + 1, a), {});
+  for (h in occHues) {
+    arr.push([h, occHues[h]])
+  }
+  let countHues = arr.sort((a,b)=>b[1]-a[1]);
+
+  // Find the average rgb color for each bucket 
+  countHues.forEach((hue) => {
+    let hueBucketId = parseInt(hue[0]);
+    let listOfIndexes = hueBuckets.reduce((a,e,i) => { if (e === hueBucketId) a.push(i); return a; }, []);
+    let rgbCols = RGBcolors.filter((a,i)=>{return listOfIndexes.indexOf(i)>-1});
+    let statOfGroup = colorStats(rgbCols);
+    result.push({
+      'hue' : hueBucketId, 
+      'occurances' : hue[1],
+      'listOfRGB' : rgbCols,
+      'stats' : statOfGroup
+    });
+  });
+
+  return result;
+
+}
+
+let RGBcolors2, HSLcolors2, hueBucket2;
 function getAverageRGB(imgEl) {
   
-  var blockSize = 150, // only visit every 5 pixels
+  var blockSize = 5, // only visit every 5 pixels
       defaultRGB = null, // for non-supporting envs
       canvas = imgCanvas, //document.createElement('canvas'),
       context = canvas.getContext && canvas.getContext('2d'),
@@ -349,27 +464,32 @@ function getAverageRGB(imgEl) {
   }
   
   length = data.data.length;
-  let colors = []
+  let RGBcolors = []
+  let HSLcolors = []
+  let hueBucket = []
+  let num_buckets = 24;
   
+  let splitBucket = ~~360/num_buckets;
+
   while ( (i += blockSize * 4) < length ) {
-      // ++count;
-      // rgb.r += data.data[i];
-      // rgb.g += data.data[i+1];
-      // rgb.b += data.data[i+2];
-      colors.push([data.data[i], data.data[i+1], data.data[i+2]])
+    RGBcolors.push([data.data[i], data.data[i+1], data.data[i+2]]);
+    hsl = RGBtoHSL(data.data[i], data.data[i+1], data.data[i+2]);    
+    HSLcolors.push([hsl.h, hsl.s, hsl.l]);
+    hueBucket.push(~~(hsl.h/splitBucket)+1);
   }
 
-  cStats = colorStats(colors);
-  colors2 = colors;
-  
-  console.log(cStats);
+  let rgbStats = colorStats(RGBcolors);
+  let hslStats = colorStats(HSLcolors);
 
-  // // ~~ used to floor values
-  // rgb.r = cStats['avg']['r'];
-  // rgb.g = cStats['avg']['g'];
-  // rgb.b = cStats['avg']['b'];
+  RGBcolors2 = RGBcolors;
+  HSLcolors2 = HSLcolors;
+  hueBucket2 = hueBucket;
   
-  return cStats;
+  let topHues = countHueBuckets(hueBucket, RGBcolors);
+
+  let stats = { 'rgb' : rgbStats, 'hsl' : hslStats, 'topHues' : topHues }
+  console.log(stats);
+  return stats;
   
 }
 
@@ -391,7 +511,8 @@ function findPos(obj) {
   return undefined;
 }
 
-imgCanvas.addEventListener('mousemove', function(e){
+//onmousedown mousemove
+imgCanvas.addEventListener('mousedown', function(e){ 
   if (imageSrc.getAttribute("src") != ""){
     var pos = findPos(this);
     var x = e.pageX - pos.x;
@@ -405,6 +526,7 @@ imgCanvas.addEventListener('mousemove', function(e){
     //var hex = "#" + ("000000" + rgbToHex(p[0], p[1], p[2])).slice(-6);
   }
 })
+
 
 
 
@@ -439,22 +561,33 @@ function loadImage() {
   }
 
   function imageLoaded() {
-      let rgbAvg = getAverageRGB(imageSrc);
-      if(rgbAvg){
-        let rAvg=rgbAvg['avg']['r'], gAvg=rgbAvg['avg']['g'], bAvg=rgbAvg['avg']['b'], aAvg=100;
+      let stats = getAverageRGB(imageSrc);
+      // Reset Boxes
+      let c = 0;
+      palette.forEach((sc)=>{
+        sc.style.background = "rgba(0,0,0,0)";
+        sc.title = "";
+        sc.style.display = "none";
+      })
+      if(stats){
+        // Get the average RGB and use it to set the body background color
+        let rAvg=stats['rgb']['avg'][0], gAvg=stats['rgb']['avg'][1], bAvg=stats['rgb']['avg'][2], aAvg=100;
         updateSliders(rAvg,gAvg,bAvg,aAvg);
-        updateBodyColor(rAvg,gAvg,bAvg,aAvg/100);
+        updateBodyColor(rAvg,gAvg,bAvg,aAvg/100);        
+        palette[0].style.background = `rgb(${rAvg},${gAvg},${bAvg})`;
+        palette[0].title = rgba2hex(rAvg, gAvg, bAvg);
 
-        palette[0].style.background = `rgb(${rAvg},${gAvg},${bAvg})`
-
-        palette[1].style.background = `rgb(${rgbAvg['highestR']['r']},${rgbAvg['highestR']['g']},${rgbAvg['highestR']['b']})`
-        palette[2].style.background = `rgb(${rgbAvg['highestG']['r']},${rgbAvg['highestG']['g']},${rgbAvg['highestG']['b']})`
-        palette[3].style.background = `rgb(${rgbAvg['highestB']['r']},${rgbAvg['highestB']['g']},${rgbAvg['highestB']['b']})`
-
-        palette[4].style.background = `rgb(${rgbAvg['lowestR']['r']},${rgbAvg['lowestR']['g']},${rgbAvg['lowestR']['b']})`
-        palette[5].style.background = `rgb(${rgbAvg['lowestG']['r']},${rgbAvg['lowestG']['g']},${rgbAvg['lowestG']['b']})`
-        palette[6].style.background = `rgb(${rgbAvg['lowestB']['r']},${rgbAvg['lowestB']['g']},${rgbAvg['lowestB']['b']})`
-
+        // Get the hue pallete of colors
+        c = 1;
+        stats['topHues'].forEach((color) => {
+          if (c < palette.length){
+            let rAvgTop = color['stats']['avg'][0], gAvgTop=color['stats']['avg'][1], bAvgTop=color['stats']['avg'][2];
+            palette[c].style.display = "block";
+            palette[c].style.background = `rgb(${rAvgTop},${gAvgTop},${bAvgTop})`;
+            palette[c].title = "#" + rgba2hex(rAvgTop, gAvgTop, bAvgTop);
+            c++;
+          }
+        })
         setColorEvents();
       }
   }
@@ -468,17 +601,100 @@ function loadImage() {
     palette.forEach((sc)=>{
       sc.addEventListener('click', function(e){
         e.stopPropagation();
-        alert("Todo");
-        // if (sc.title != ""){
-        //   setColorHex(sc.title);
-        // }
+        if (sc.title != ""){
+          setColorHex(sc.title);
+        }
       })
     })
   }
 }
+
+function updateLSH(r,g,b){
+  let h,s,l;
+  let hsl = RGBtoHSL(r,g,b);
+  h = hsl.h;
+  s = hsl.s;
+  l = hsl.l;
+  lightnessBox.innerHTML = "";
+  saturationBox.innerHTML = "";
+  hueBox.innerHTML = "";
+  for (var i=5; i<=95; i+=4){
+    var newRGBLightness = HSLToRGB(h,s,i/100);
+    var newRGBSaturation = HSLToRGB(h,i/100,l);
+    var newRGBHue = HSLToRGB(360*(i/100),s,l);
+
+    var divLightness = document.createElement("div");
+    divLightness.style.background = `rgb(${newRGBLightness.r},${newRGBLightness.g},${newRGBLightness.b})`;
+    divLightness.title = "#" + rgba2hex(newRGBLightness.r,newRGBLightness.g,newRGBLightness.b);
+    lightnessBox.appendChild(divLightness);
+
+    var divSaturation = document.createElement("div");
+    divSaturation.style.background = `rgb(${newRGBSaturation.r},${newRGBSaturation.g},${newRGBSaturation.b})`;
+    divSaturation.title = "#" + rgba2hex(newRGBSaturation.r,newRGBSaturation.g,newRGBSaturation.b);
+    saturationBox.appendChild(divSaturation);
+
+    var divHue = document.createElement("div");
+    divHue.style.background = `rgb(${newRGBHue.r},${newRGBHue.g},${newRGBHue.b})`;
+    divHue.title = "#" + rgba2hex(newRGBHue.r,newRGBHue.g,newRGBHue.b);
+    hueBox.appendChild(divHue);
+  }
+
+  // Set the events for each object
+  let boxesLightness = lightnessBox.querySelectorAll("div");
+  boxesLightness.forEach((sc)=>{ sc.addEventListener('click', (e) => { if (sc.title != "") setColorHex(sc.title);})})
+  
+  let boxesSaturation = saturationBox.querySelectorAll("div");
+  boxesSaturation.forEach((sc)=>{ sc.addEventListener('click', (e) => { if (sc.title != "") setColorHex(sc.title);})})
+  
+  let boxesHue = hueBox.querySelectorAll("div");
+  boxesHue.forEach((sc)=>{ sc.addEventListener('click', (e) => { if (sc.title != "") setColorHex(sc.title);})})
+}
+
+
 
 // imgContainer.classList.remove("hidden");
 inputFile.onchange = function(){
   loadImage();
   imgContainer.classList.remove("hidden");
 }
+
+
+
+imgCanvas.addEventListener('mousemove', function(e){ 
+  let wMag = magnifier.clientWidth;
+  let hMag = magnifier.clientHeight;
+  let pixelsMag = 5;
+  let pixelSize = ~~wMag/pixelsMag;
+
+  if (imageSrc.getAttribute("src") != ""){
+    var pos = findPos(this);
+    var x = e.pageX - pos.x;
+    var y = e.pageY - pos.y;
+    var c = this.getContext('2d');
+    magnifier.innerHTML = "";
+    for (var i=0; i<pixelsMag; i++){
+      for (var j=0; j<pixelsMag; j++){
+        var p = c.getImageData(x + j - ~~(pixelsMag/2) , y + i - ~~(pixelsMag/2), 1, 1).data;
+        var r=p[0], g=p[1], b=p[2], a=p[3];
+        var pMag = document.createElement("div");
+        pMag.style.width = pixelSize - 2 + "px";
+        pMag.style.height = pixelSize - 2 + "px";
+        pMag.style.background = `rgb(${r},${g},${b})`;
+        if ((j == ~~(pixelsMag/2)) && (i == ~~(pixelsMag/2))) {
+          pMag.style.border = "1px solid #992233";
+        }
+        magnifier.appendChild(pMag);
+      }
+    }
+
+    magnifier.style.top = y - (~~hMag/2) + "px";
+    magnifier.style.left = x + 20 + "px";
+    magnifier.classList.add("open");
+    
+    // var hex = rgba2hex(r,g,b,a/255);
+  }
+})
+
+imgCanvas.addEventListener('mouseleave', function(e){ 
+  magnifier.classList.remove("open");
+})
